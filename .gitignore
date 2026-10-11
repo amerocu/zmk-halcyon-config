@@ -1,0 +1,10 @@
+.zmk/
+.west/
+build/
+firmware/
+modules/
+optional/
+zephyr/
+zmk/
+zmk-halcyon-module/
+
