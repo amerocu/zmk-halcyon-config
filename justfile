@@ -91,6 +91,70 @@ list-targets:
         board = e["board"].split("//")[0]
         print(e.get("artifact-name") or f"{(shield.split() or ['noshield'])[0]}-{board}")
 
+# Flash every entry in build.yaml, in order. Optional filter: only entries whose
+# name contains it, e.g. `just flash left`. Double-tap reset each device when prompted.
+flash filter="":
+    #!/usr/bin/env python
+    import subprocess, time, sys
+    from pathlib import Path
+    import yaml
+
+    root = Path("{{root}}")
+    flt = "{{filter}}"
+
+    entries = (yaml.safe_load((root / "build.yaml").read_text()) or {}).get("include", [])
+
+    def find_device():
+        out = subprocess.run(["lsblk", "-Sno", "path,model"], capture_output=True, text=True).stdout
+        for line in out.splitlines():
+            if "nRF UF2" in line:
+                return line.split()[0]
+        return None
+
+    def find_mountpoint(device):
+        out = subprocess.run(["findmnt", device, "-no", "target"], capture_output=True, text=True).stdout.strip()
+        return out or None
+
+    flashed = 0
+    for e in entries:
+        name = e.get("artifact-name")
+        if not name or (flt and flt not in name):
+            continue
+
+        uf2 = root / "firmware" / f"{name}.uf2"
+        if not uf2.exists():
+            sys.exit(f"Missing {uf2}. Run: just build")
+
+        print(f"\n=== Flash {name} ===", flush=True)
+        print("Double-tap reset and plug in the device...", flush=True)
+
+        device = None
+        while not device:
+            device = find_device()
+            if not device:
+                time.sleep(1)
+        print(f"Found device at {device}", flush=True)
+
+        mountpoint = None
+        while not mountpoint:
+            subprocess.run(["udisksctl", "mount", "--block-device", device], capture_output=True)
+            mountpoint = find_mountpoint(device)
+            if not mountpoint:
+                time.sleep(1)
+        print(f"Found mountpoint at {mountpoint}", flush=True)
+
+        subprocess.run(["cp", str(uf2), mountpoint], check=True)
+        print(f"Flashed {name}", flush=True)
+        flashed += 1
+
+        time.sleep(1)
+        while find_mountpoint(device):
+            time.sleep(1)
+
+    if flashed == 0:
+        sys.exit("No build.yaml entries matched" + (f" '{flt}'" if flt else ""))
+    print(f"\nDone: flashed {flashed} device(s)")
+
 # Remove build output (keeps the west workspace)
 clean:
     rm -rf build firmware

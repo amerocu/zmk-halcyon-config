@@ -25,9 +25,9 @@ include:
     
   - artifact-name: corne_left
     board: halcyon_wireless//zmk
-    shield: halcyon_corne_left mod_battery_lipo mod_display_epaper_cityscape
+    shield: halcyon_corne_left mod_battery_lipo mod_display_epaper_forest
+    cmake-args: -DCONFIG_ZMK_SPLIT_ROLE_CENTRAL=n
     
   - artifact-name: corne_right
     board: halcyon_wireless//zmk
-    shield: halcyon_corne_right mod_battery_lipo mod_cirque_hw_left
-    
+    shield: halcyon_corne_right mod_battery_lipo mod_cirque_hw_right
