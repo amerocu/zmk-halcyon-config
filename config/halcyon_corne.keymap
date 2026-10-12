@@ -32,6 +32,16 @@
             key-positions = <20 21>;
             bindings = <&kp SQT>;
         };
+        combo_er {
+            timeout-ms = <50>;
+            key-positions = <3 4>;
+            bindings = <&tog 4>;
+        };
+        combo_ui {
+            timeout-ms = <50>;
+            key-positions = <7 8>;
+            bindings = <&tog 3>;
+        };
     };
 };
 
@@ -47,15 +57,15 @@
 // |      |  Z  |  X  |  C  |  V  |  B  |   |  N  |  M  |  ,  |  .  |  /  |      |
 //                    | GUI |Shf/ |Nav/ |   |Sym/ |Ctl/ |Alt/ |
 //                    |     |Spc  |Del  |   |Bsp  |Spc  |Ent  |
-// |ADJST|Alt/ |     |     |     |   |     |     |GUI  |FKEYS|     |
-// |     |Ent  |     |     |     |   |     |     |     |     |     |
+// |     |     |     |     |     |   |     |     |     |     |     |
+// |     |     |     |     |     |   |     |     |     |     |     |
             bindings = <
 &none      &kp Q &kp W &kp E &kp R &kp T   &kp Y &kp U  &kp I     &kp O   &kp P    &none
 &none      &mt LGUI A &mt LALT S &mt LCTRL D &mt LSHFT F &kp G   &kp H &mt RSHFT J &mt LCTRL K &mt RALT L &mt RGUI SEMI &none
 &none      &kp Z &kp X &kp C &kp V &kp B   &kp N &kp M  &kp COMMA &kp DOT &kp FSLH &none
                &kp LGUI &mt RSHFT SPACE &lt 2 DEL   &lt 1 BSPC &mt LCTRL SPACE &mt LALT ENTER
 
-&tog 4 &mt RALT ENTER &none &none &none                          &none &none &kp RGUI &tog 3 &none
+&none &none &none &none &none                          &none &none &none &none &none
 
             >;
             sensor-bindings = <&inc_dec_kp C_VOL_UP C_VOL_DN &inc_dec_kp PG_UP PG_DN &inc_dec_kp C_VOL_UP C_VOL_DN &inc_dec_kp PG_UP PG_DN>;
