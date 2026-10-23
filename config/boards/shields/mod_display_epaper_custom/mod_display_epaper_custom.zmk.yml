@@ -1,0 +1,8 @@
+file_format: "1"
+id: mod_display_epaper_custom
+name: Halcyon ePaper Display (Custom)
+type: shield
+url: https://splitkb.com
+requires: [vik]
+features:
+  - display
