@@ -50,7 +50,7 @@
         compatible = "zmk,keymap";
 
         default_layer {
-            display-name = "QWERTY";
+            display-name = "QWE";
 // -----------------------------------------------------------------------------------------
 // |      |  Q  |  W  |  E  |  R  |  T  |   |  Y  |  U  |  I  |  O  |  P  |      |
 // |      |GUI/A|Alt/S|Ctl/D|Shf/F|  G  |   |  H  |Shf/J|Ctl/K|Alt/L|GUI/;|      |
@@ -59,7 +59,7 @@
 //                    | Ent |Spc  |Del  |   |Bsp  |Spc  |Ent  |
             bindings = <
 &none &kp Q      &kp W      &kp E       &kp R       &kp T   &kp Y &kp U       &kp I       &kp O      &kp P         &none
-&none &mt LGUI A &mt LALT S &mt LCTRL D &mt LSHFT F &kp G   &kp H &mt RSHFT J &mt LCTRL K &mt RALT L &mt RGUI SEMI &none
+&none &mt LGUI A &mt LALT S &mt LCTRL D &mt LSHFT F &kp G   &kp H &mt RSHFT J &mt RCTRL K &mt RALT L &mt RGUI SEMI &none
 &none &kp Z      &kp X      &kp C       &kp V       &kp B   &kp N &kp M       &kp COMMA   &kp DOT    &kp FSLH      &none
 
                  &mt LGUI ENTER &mt RSHFT SPACE &lt 2 DEL   &lt 1 BSPC &mt LCTRL SPACE &mt LALT ENTER
@@ -103,7 +103,7 @@
         };
 
         function_layer {
-            display-name = "Function";
+            display-name = "Fun";
 // -----------------------------------------------------------------------------------------
 // |      |  F1 |  F2 |  F3 |  F4 |  F5 |   |  F6 |  F7 |  F8 |  F9 | F10 |      |
 // |      | F11 | F12 |     |     |     |   |     |     |     |     |     |      |
@@ -121,20 +121,56 @@
         };
 
         adjust_layer {
-            display-name = "Adjust";
+            display-name = "Adj";
 // -----------------------------------------------------------------------------------------
-// |      |STDIO|     |QWERTY|     |     |   |     |     |     |     |     |     |
+// |      |STDIO| MAC |QWERTY|     |     |   |     |     |     |     |     |     |
 // |      |RGBON|RGBHU|RGBSA|RGBBR|RGBEF|   |     |     |     |     |     |     |
 // |      |RGBOF|RGBHD|RGBSD|RGBBD|RGBER|   |     |     |     |     |     |     |
 //                    |     |     |     |   |     |     |     |
 //                    |     |     |     |   |     |     |     |
             bindings = <
-&none &studio_unlock &none &to 0 &none &none   &none &none &none &none &none &none
+&none &studio_unlock &to 5 &to 0 &none &none   &none &none &none &none &none &none
 &none &rgb_ug RGB_ON &rgb_ug RGB_HUI &rgb_ug RGB_SAI &rgb_ug RGB_BRI &rgb_ug RGB_EFF   &none &none &none &none &none &none
 &none &rgb_ug RGB_OFF &rgb_ug RGB_HUD &rgb_ug RGB_SAD &rgb_ug RGB_BRD &rgb_ug RGB_EFR   &none &none &none &none &none &none
                &trans &trans &trans   &trans &trans &trans
 
 &trans &trans &trans &trans &trans                          &trans &trans &trans &trans &trans
+            >;
+        };
+
+        mac_layer {
+            display-name = "Mac";
+// -----------------------------------------------------------------------------------------
+// |      |  Q  |  W  |  E  |  R  |  T  |   |  Y  |  U  |  I  |  O  |  P  |      |
+// |      |Ctl/A|Alt/S|GUI/D|Shf/F|  G  |   |  H  |Shf/J|GUI/K|Alt/L|Ctl/;|      |
+// |      |  Z  |  X  |  C  |  V  |  B  |   |  N  |  M  |  ,  |  .  |  /  |      |
+//                    | GUI |Shf/ |Nav/ |   |Sym/ |Ctl/ |Alt/ |
+//                    | Ent |Spc  |Del  |   |Bsp  |Spc  |Ent  |
+            bindings = <
+&none &kp Q      &kp W      &kp E       &kp R       &kp T   &kp Y &kp U       &kp I       &kp O      &kp P         &none
+&none &mt LCTRL A &mt LALT S &mt LGUI D &mt LSHFT F &kp G   &kp H &mt RSHFT J &mt RGUI K &mt RALT L &mt RCTRL SEMI &none
+&none &kp Z      &kp X      &kp C       &kp V       &kp B   &kp N &kp M       &kp COMMA   &kp DOT    &kp FSLH      &none
+
+                 &mt LGUI ENTER &mt RSHFT SPACE &lt 2 DEL   &lt 6 BSPC &mt LCTRL SPACE &mt LALT ENTER
+                 &none &none &none &none &none              &none &none &none &none &none
+            >;
+        };
+
+        mac_sym_layer {
+            display-name = "SyM";
+// -----------------------------------------------------------------------------------------
+// |      |  1  |  2  |  3  |  4  |  5  |   |  6  |  7  |  8  |  9  |  0  |      |
+// |      |Ctl/~|Alt/<|GUI/[|Shf/(|  {  |   |  }  |Shf/)|GUI/]|Alt/>|Ctl/`|      |
+// |      |  \  |  ?  |  |  |  -  |  _  |   |  =  |  +  |  ,  |  .  |  /  |      |
+//                    |     |     |     |   |     |     |     |
+//                    |     |     |     |   |     |     |     |
+            bindings = <
+&none &kp N1         &kp N2       &kp N3         &kp N4         &kp N5    &kp N6    &kp N7         &kp N8         &kp N9      &kp N0         &none
+&none &mt LCTRL TILDE &mt LALT LT  &mt LGUI LBKT &mt LSHFT LPAR &kp LBRC  &kp RBRC  &mt RSHFT RPAR &mt RGUI RBKT &mt RALT GT &mt RCTRL GRAVE &none
+&none &kp BSLH       &kp QUESTION &kp PIPE       &kp MINUS      &kp UNDER &kp EQUAL &kp PLUS       &kp COMMA      &kp DOT     &kp FSLH       &none 
+
+               &trans &trans &trans                                       &trans &trans &trans
+               &trans &trans &trans &trans &trans                         &trans &trans &trans &trans &trans
             >;
         };
     };
