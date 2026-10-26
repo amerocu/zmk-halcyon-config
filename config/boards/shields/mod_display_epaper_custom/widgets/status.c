@@ -23,6 +23,13 @@ LOG_MODULE_DECLARE(zmk, CONFIG_ZMK_LOG_LEVEL);
 #include <zmk/ble.h>
 #include <zmk/endpoints.h>
 #include <zmk/keymap.h>
+#include <zmk/hid.h>
+#include <zmk/hid_indicators.h>
+#include <zmk/caps_word.h>
+#include <zmk/behavior.h>
+#include <zmk/events/keycode_state_changed.h>
+#include "mod_lock.h"
+#include "sync_state.h"
 
 static sys_slist_t widgets = SYS_SLIST_STATIC_INIT(&widgets);
 
@@ -267,6 +274,47 @@ ZMK_DISPLAY_WIDGET_LISTENER(widget_layer_status, struct layer_status_state, laye
 
 ZMK_SUBSCRIPTION(widget_layer_status, zmk_layer_state_changed);
 
+static uint8_t last_sent_mods;
+static uint8_t last_sent_layer = 0xFF;
+
+static void central_sync_cb(struct peripheral_state unused) {
+    uint8_t mods = zmk_hid_get_explicit_mods();
+    uint8_t layer = zmk_keymap_highest_layer_active();
+
+    if (layer != last_sent_layer) {
+        last_sent_layer = layer;
+        struct zmk_behavior_binding b = { .behavior_dev = "sync_layer", .param1 = layer };
+        struct zmk_behavior_binding_event e = { .position = 0, .timestamp = k_uptime_get() };
+        zmk_behavior_invoke_binding(&b, e, true);
+    }
+    if (mods != last_sent_mods) {
+        last_sent_mods = mods;
+        struct zmk_behavior_binding b = { .behavior_dev = "sync_mods", .param1 = mods };
+        struct zmk_behavior_binding_event e = { .position = 0, .timestamp = k_uptime_get() };
+        zmk_behavior_invoke_binding(&b, e, true);
+    }
+}
+
+static struct peripheral_state central_sync_get_state(const zmk_event_t *eh) {
+    return synced_state;
+}
+
+ZMK_DISPLAY_WIDGET_LISTENER(widget_central_sync, struct peripheral_state, central_sync_cb,
+                            central_sync_get_state)
+
+ZMK_SUBSCRIPTION(widget_central_sync, zmk_keycode_state_changed);
+ZMK_SUBSCRIPTION(widget_central_sync, zmk_layer_state_changed);
+
+void sync_state_draw(void) {
+    struct zmk_widget_status *widget;
+    SYS_SLIST_FOR_EACH_CONTAINER(&widgets, widget, node) {
+        widget->mod_lock.mods = synced_state.mods;
+        widget->mod_lock.caps_word = synced_state.caps_word;
+        widget->mod_lock.mac = synced_state.mac;
+        draw_modlock(lv_obj_get_child(widget->obj, 3), &widget->mod_lock);
+    }
+}
+
 int zmk_widget_status_init(struct zmk_widget_status *widget, lv_obj_t *parent) {
     widget->obj = lv_obj_create(parent);
     lv_obj_set_size(widget->obj, 184, 88);
@@ -280,10 +328,22 @@ int zmk_widget_status_init(struct zmk_widget_status *widget, lv_obj_t *parent) {
     lv_obj_align(bottom, LV_ALIGN_TOP_LEFT, 44, 0);
     lv_canvas_set_buffer(bottom, widget->cbuf3, CANVAS_SIZE, CANVAS_SIZE, CANVAS_COLOR_FORMAT);
 
+    lv_obj_t *modlock = lv_canvas_create(widget->obj);
+    lv_obj_align(modlock, LV_ALIGN_TOP_LEFT, 96, 0);
+    lv_canvas_set_buffer(modlock, widget->cbuf4, CANVAS_SIZE, CANVAS_SIZE, CANVAS_COLOR_FORMAT);
+
+    lv_obj_set_style_bg_color(widget->obj, lv_color_white(), LV_PART_MAIN);
+    lv_obj_set_style_bg_opa(widget->obj, LV_OPA_COVER, LV_PART_MAIN);
+
+    draw_modlock(modlock, &(struct mod_lock_state){0});
+
+
+
     sys_slist_append(&widgets, &widget->node);
     widget_battery_status_init();
     widget_output_status_init();
     widget_layer_status_init();
+    widget_central_sync_init();
 
     return 0;
 }

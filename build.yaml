@@ -20,7 +20,7 @@ include:
   - artifact-name: corne_dongle
     board: halcyon_dongle//zmk
     shield: halcyon_corne_dongle
-    cmake-args: -DCONFIG_ZMK_STUDIO=y
+    cmake-args: -DCONFIG_ZMK_STUDIO=y -DCONFIG_ZMK_SPLIT_PERIPHERAL_HID_INDICATORS=y -DCONFIG_ZMK_HID_INDICATORS=y
     snippet: studio-rpc-usb-uart
     
   - artifact-name: corne_left

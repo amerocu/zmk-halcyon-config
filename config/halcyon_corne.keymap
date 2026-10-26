@@ -43,6 +43,15 @@
             bindings = <&tog 3>;
         };
     };
+
+    /omit-if-no-ref/ sync_mods: sync_mods {
+        compatible = "zmk,behavior-sync-mods";
+        #binding-cells = <1>;
+    };
+    /omit-if-no-ref/ sync_layer: sync_layer {
+        compatible = "zmk,behavior-sync-layer";
+        #binding-cells = <1>;
+    };
 };
 
 / {
