@@ -1,0 +1,17 @@
+/*
+ * USB logging console.  The CONFIG_ZMK_USB_LOGGING option selects USB_UART_CONSOLE,
+ * which needs a zephyr,console chosen node pointing at a cdc-acm-uart device.
+ * The splitkb boards provide zephyr_udc0 but not the console chosen, so add it here.
+ */
+
+/ {
+    chosen {
+        zephyr,console = &sync_cdc_acm_console;
+    };
+};
+
+&zephyr_udc0 {
+    sync_cdc_acm_console: sync_cdc_acm_console {
+        compatible = "zephyr,cdc-acm-uart";
+    };
+};

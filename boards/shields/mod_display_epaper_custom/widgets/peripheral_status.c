@@ -23,12 +23,10 @@ LOG_MODULE_DECLARE(zmk, CONFIG_ZMK_LOG_LEVEL);
 #include <zmk/events/split_peripheral_status_changed.h>
 #include <zmk/usb.h>
 #include <zmk/ble.h>
-#include <zmk/hid_indicators.h>
-#include <dt-bindings/zmk/hid_indicators.h>
 
 #include "peripheral_status.h"
 #include "mod_lock.h"
-#include "sync_state.h"
+#include "split_state.h"
 
 static sys_slist_t widgets = SYS_SLIST_STATIC_INIT(&widgets);
 
@@ -60,8 +58,10 @@ static void draw_layer(lv_obj_t *widget, uint8_t layer_index) {
 
     lv_draw_label_dsc_t label_dsc;
     init_label_dsc(&label_dsc, LVGL_FOREGROUND, &lv_font_montserrat_16, LV_TEXT_ALIGN_CENTER);
+    lv_draw_rect_dsc_t rect_bg_dsc;
+    init_rect_dsc(&rect_bg_dsc, LVGL_BACKGROUND);
 
-    lv_canvas_fill_bg(canvas, LVGL_BACKGROUND, LV_OPA_COVER);
+    canvas_draw_rect(canvas, 0, 0, CANVAS_SIZE, CANVAS_SIZE, &rect_bg_dsc);
 
     const char *name = (layer_index < LAYER_NAME_COUNT) ? layer_names[layer_index] : NULL;
     if (name == NULL) {
@@ -125,7 +125,7 @@ ZMK_DISPLAY_WIDGET_LISTENER(widget_peripheral_status, struct peripheral_status_s
                             output_status_update_cb, get_state)
 ZMK_SUBSCRIPTION(widget_peripheral_status, zmk_split_peripheral_status_changed);
 
-void sync_state_draw(void) {
+static void sync_draw_work_cb(struct k_work *work) {
     struct zmk_widget_status *widget;
     SYS_SLIST_FOR_EACH_CONTAINER(&widgets, widget, node) {
         draw_layer(widget->obj, synced_state.layer);
@@ -136,6 +136,12 @@ void sync_state_draw(void) {
 
         draw_modlock(lv_obj_get_child(widget->obj, 2), &widget->mod_lock);
     }
+}
+
+static K_WORK_DEFINE(sync_draw_work, sync_draw_work_cb);
+
+void sync_state_draw(void) {
+    k_work_submit_to_queue(zmk_display_work_q(), &sync_draw_work);
 }
 
 static void hid_indicators_update_cb(struct zmk_hid_indicators_changed state) {
@@ -176,6 +182,7 @@ int zmk_widget_status_init(struct zmk_widget_status *widget, lv_obj_t *parent) {
     lv_canvas_set_buffer(modlock, widget->cbuf3, CANVAS_SIZE, CANVAS_SIZE, CANVAS_COLOR_FORMAT);
 
     draw_modlock(modlock, &widget->mod_lock);
+    draw_layer(widget->obj, 0);
 
     sys_slist_append(&widgets, &widget->node);
     widget_battery_status_init();

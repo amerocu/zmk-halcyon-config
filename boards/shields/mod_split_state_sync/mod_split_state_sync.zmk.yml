@@ -1,0 +1,6 @@
+file_format: "1"
+id: mod_split_state_sync
+name: Split State Sync
+type: shield
+url: https://splitkb.com
+requires: []

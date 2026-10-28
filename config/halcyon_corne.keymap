@@ -44,13 +44,15 @@
         };
     };
 
-    /omit-if-no-ref/ sync_mods: sync_mods {
+    syncmod: syncmod {
         compatible = "zmk,behavior-sync-mods";
         #binding-cells = <1>;
+        label = "syncmod";
     };
-    /omit-if-no-ref/ sync_layer: sync_layer {
+    synclyr: synclyr {
         compatible = "zmk,behavior-sync-layer";
         #binding-cells = <1>;
+        label = "synclyr";
     };
 };
 

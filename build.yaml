@@ -19,15 +19,15 @@
 include:
   - artifact-name: corne_dongle
     board: halcyon_dongle//zmk
-    shield: halcyon_corne_dongle
+    shield: halcyon_corne_dongle mod_split_state_sync
     cmake-args: -DCONFIG_ZMK_STUDIO=y -DCONFIG_ZMK_SPLIT_PERIPHERAL_HID_INDICATORS=y -DCONFIG_ZMK_HID_INDICATORS=y
     snippet: studio-rpc-usb-uart
     
   - artifact-name: corne_left
     board: halcyon_wireless//zmk
-    shield: halcyon_corne_left mod_battery_lipo mod_display_epaper_custom
+    shield: halcyon_corne_left mod_battery_lipo mod_display_epaper_custom mod_split_state_sync
     cmake-args: -DCONFIG_ZMK_SPLIT_ROLE_CENTRAL=n
     
   - artifact-name: corne_right
     board: halcyon_wireless//zmk
-    shield: halcyon_corne_right mod_battery_lipo mod_cirque_hw_right
+    shield: halcyon_corne_right mod_battery_lipo mod_cirque_hw_right mod_split_state_sync
