@@ -31,15 +31,18 @@ update:
     west update
 
 # Build every entry in build.yaml. Optional filter: only entries whose name contains it,
-# e.g. `just build left`. Output .uf2 files go to ./firmware
-build filter="":
+# e.g. `just build left`. Add `--debug` to enable USB logging, e.g. `just build --debug`.
+# Output .uf2 files go to ./firmware
+build *args:
     #!/usr/bin/env python
     import shlex, shutil, subprocess, sys
     from pathlib import Path
     import yaml
 
     root = Path("{{root}}")
-    flt = "{{filter}}"
+    toks = shlex.split("{{args}}")
+    debug = "--debug" in toks
+    flt = next((t for t in toks if not t.startswith("--")), "")
 
     for d in (".west", "zmk", "zephyr/share/zephyr-package"):
         if not (root / d).exists():
@@ -66,6 +69,8 @@ build filter="":
         if shield:
             cmd.append(f"-DSHIELD={shield}")
         cmd += shlex.split(e.get("cmake-args", ""))
+        if debug:
+            cmd += ["-DCONFIG_ZMK_USB_LOGGING=y", "-DCONFIG_USB_CDC_ACM_LOG_LEVEL_DBG=y"]
 
         print(f"\n=== {name} ===", flush=True)
         subprocess.run(cmd, cwd=root, check=True)
@@ -90,6 +95,10 @@ list-targets:
         shield = e.get("shield", "")
         board = e["board"].split("//")[0]
         print(e.get("artifact-name") or f"{(shield.split() or ['noshield'])[0]}-{board}")
+
+# Stream logs from all USB CDC-ACM logging devices (dongle + left + right).
+logs:
+    sudo python3 "{{root}}/scripts/logs.py"
 
 # Flash every entry in build.yaml, in order. Optional filter: only entries whose
 # name contains it, e.g. `just flash left`. Double-tap reset each device when prompted.
