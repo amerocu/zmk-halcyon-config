@@ -7,7 +7,7 @@
 
 ## Build / flash (local)
 - Enter the Nix dev shell first: `nix develop` (provides cmake, ninja, arm gcc, protobuf, python/west). `just` is **not** in the dev shell; `dtc` (device-tree-compiler) is not either.
-- One-time: `just setup` (runs `west init -l config` if needed, then `west update`). Build: `just build` (all entries) or `just build <filter>` (substring of the artifact name). Output: `firmware/<artifact-name>.uf2`.
+- One-time: `just setup` (writes `vendor/.west/config` pointing `manifest.path` back at `../config`, then runs `west update` + `west zephyr-export`). Build: `just build` (all entries) or `just build <filter>` (substring of the artifact name). Output: `firmware/<artifact-name>.uf2`.
 - `just build --debug` builds with USB logging enabled (`CONFIG_ZMK_USB_LOGGING=y` + debug log level). Stream the logs with `just logs` (reads all `/dev/ttyACM*`/`/dev/ttyUSB*`, prefixes each line with the tty name; needs sudo).
 - `just flash [filter]` flashes over UF2 mass-storage; **entries without `artifact-name` are silently skipped**. `just list-targets` prints resolved names. `just clean` removes `build/`+`firmware/`; `just distclean` removes the whole west workspace.
 
@@ -20,7 +20,7 @@
 - **ZMK core patches: none.** The split sync and caps-word display are done without touching `zmk/` (west-fetched, gitignored). If a prior `west update` left a `zmk_caps_word_is_active()` patch, it's no longer needed — re-apply or discard as appropriate.
 
 ## Quirks
-- The real west workspace is at the repo root (`.west/`, `zephyr/`, `zmk/`, `zmk-halcyon-module/`), all gitignored. `.zmk/` is a stale ZMK CLI cache — ignore it.
+- The real west workspace lives in `vendor/` (all gitignored): `vendor/.west/`, `vendor/zephyr/`, `vendor/zmk/`, `vendor/zmk-halcyon-module/`, `vendor/modules/`, etc. `west` commands must run from inside `vendor/` (the justfile does this via `cd "{{deps}}"` / `cwd=deps`); the manifest still comes from repo-root `config/west.yml` via `manifest.path = ../config`. `.zmk/` is a stale ZMK CLI cache — ignore it.
 - `config/zephyr/module.yml` sets `board_root: ..`, which is how `boards/shields/*` gets discovered (the old `config/boards/` path is deprecated and must not be used).
 - **Behavior names must be ≤ 8 chars.** The split `run_behavior` BLE payload stores the name in a 9-byte field; `syncmod`/`synclyr` fit, `sync_mods`/`sync_layer` would be truncated on the wire.
 - `build.yaml` shield order matters: `<keyboard>_<side> <battery> mod_*`. Dongle = `<keyboard>_dongle mod_split_state_sync`. Left/right also append `mod_split_state_sync`. Non-dongle central (left) adds `cmake-args: -DCONFIG_ZMK_SPLIT_ROLE_CENTRAL=n`; Studio builds add `-DCONFIG_ZMK_STUDIO=y` plus `snippet: studio-rpc-usb-uart` on the central.

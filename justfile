@@ -12,23 +12,28 @@ set shell := ["bash", "-euo", "pipefail", "-c"]
 
 root   := justfile_directory()
 config := root / "config"
+deps   := root / "vendor"
 
-# Point CMake at the Zephyr checkout that `west update` creates next to config/
-export ZEPHYR_BASE := root / "zephyr"
+# Point CMake at the Zephyr checkout that `west update` creates under vendor/
+export ZEPHYR_BASE := deps / "zephyr"
 
 default:
     @just --list
 
-# One-time setup: fetch ZMK and Zephyr (Python deps come from the Nix dev shell)
+# One-time setup: fetch ZMK and Zephyr (Python deps come from the Nix dev shell).
+# The west workspace lives in vendor/; its .west/config points the manifest back
+# at {{config}}/west.yml (manifest.path = ../config), so deps clone into vendor/
+# instead of the repo root.
 setup:
-    [ -d "{{root}}/.west" ] || west init -l "{{config}}"
-    west update
-    west zephyr-export
+    mkdir -p "{{deps}}/.west"
+    printf '[manifest]\npath = ../config\nfile = west.yml\n\n[zephyr]\nbase = zephyr\n' > "{{deps}}/.west/config"
+    cd "{{deps}}" && west update
+    cd "{{deps}}" && west zephyr-export
     @echo "Setup done. Run: just build"
 
 # Pull the ZMK/Zephyr/module versions pinned in config/west.yml
 update:
-    west update
+    cd "{{deps}}" && west update
 
 # Build every entry in build.yaml. Optional filter: only entries whose name contains it,
 # e.g. `just build left`. Add `--debug` to enable USB logging, e.g. `just build --debug`.
@@ -40,13 +45,14 @@ build *args:
     import yaml
 
     root = Path("{{root}}")
+    deps = root / "vendor"
     toks = shlex.split("{{args}}")
     debug = "--debug" in toks
     flt = next((t for t in toks if not t.startswith("--")), "")
 
     for d in (".west", "zmk", "zephyr/share/zephyr-package"):
-        if not (root / d).exists():
-            sys.exit(f"Workspace incomplete (missing {d}). Run: just setup")
+        if not (deps / d).exists():
+            sys.exit(f"Workspace incomplete (missing vendor/{d}). Run: just setup")
 
     entries = (yaml.safe_load((root / "build.yaml").read_text()) or {}).get("include", [])
     out = root / "firmware"
@@ -62,7 +68,7 @@ build *args:
             continue
 
         cmd = ["west", "build", "-p", "auto", "-s", "zmk/app",
-               "-d", f"build/{name}", "-b", board]
+               "-d", str(root / "build" / name), "-b", board]
         if e.get("snippet"):
             cmd += ["-S", e["snippet"]]
         cmd += ["--", f"-DZMK_CONFIG={root / 'config'}"]
@@ -73,7 +79,7 @@ build *args:
             cmd += ["-DCONFIG_ZMK_USB_LOGGING=y", "-DCONFIG_USB_CDC_ACM_LOG_LEVEL_DBG=y"]
 
         print(f"\n=== {name} ===", flush=True)
-        subprocess.run(cmd, cwd=root, check=True)
+        subprocess.run(cmd, cwd=deps, check=True)
 
         built_dir = root / "build" / name / "zephyr"
         src = next((p for p in (built_dir / "zmk.uf2", built_dir / "zmk.bin") if p.exists()), None)
@@ -170,4 +176,4 @@ clean:
 
 # Remove everything fetched by setup (you'll need to run `just setup` again)
 distclean: clean
-    rm -rf .west zmk zephyr modules zmk-modules bootloader tools
+    rm -rf vendor .west zmk zephyr modules zmk-modules bootloader tools optional
