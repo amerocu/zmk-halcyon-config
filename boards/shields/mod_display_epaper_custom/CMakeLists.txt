@@ -5,7 +5,7 @@ if(CONFIG_ZMK_DISPLAY AND CONFIG_HALCYON_EPAPER_WIDGET_STATUS)
 
   zephyr_library_sources(custom_status_screen.c)
   zephyr_library_sources(widgets/bolt.c)
-  zephyr_library_sources(widgets/icons.c)
+  zephyr_library_sources(widgets/modifier_icons.c)
   zephyr_library_sources(widgets/mod_lock.c)
   zephyr_library_sources(widgets/util.c)
 
