@@ -32,15 +32,19 @@
             key-positions = <20 21>;
             bindings = <&kp SQT>;
         };
-        combo_er {
-            timeout-ms = <50>;
-            key-positions = <3 4>;
-            bindings = <&tog 4>;
+        // Hold both inner thumbs (Nav/Del + Sym/Backspace) for Function.
+        combo_fun {
+            timeout-ms = <100>;
+            key-positions = <38 39>;
+            layers = <0>;
+            bindings = <&mo 3>;
         };
-        combo_ui {
-            timeout-ms = <50>;
-            key-positions = <7 8>;
-            bindings = <&tog 3>;
+        // Hold both outer thumbs (the two Enter keys) for Adjust.
+        combo_adj {
+            timeout-ms = <100>;
+            key-positions = <36 41>;
+            layers = <0>;
+            bindings = <&mo 4>;
         };
     };
 
