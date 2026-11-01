@@ -80,21 +80,35 @@ void rotate_canvas(lv_obj_t *canvas) {
 }
 
 void draw_battery(lv_obj_t *canvas, const struct status_state *state) {
+    draw_battery_icon(canvas, 0, state->battery, state->charging, true, true);
+}
+
+void draw_battery_icon(lv_obj_t *canvas, lv_coord_t x, uint8_t level, bool charging,
+                      bool connected, bool valid) {
     lv_draw_rect_dsc_t rect_black_dsc;
     init_rect_dsc(&rect_black_dsc, LVGL_BACKGROUND);
     lv_draw_rect_dsc_t rect_white_dsc;
     init_rect_dsc(&rect_white_dsc, LVGL_FOREGROUND);
 
-    canvas_draw_rect(canvas, 0, 2, 29, 12, &rect_white_dsc);
-    canvas_draw_rect(canvas, 1, 3, 27, 10, &rect_black_dsc);
-    canvas_draw_rect(canvas, 2, 4, (state->battery + 2) / 4, 8, &rect_white_dsc);
-    canvas_draw_rect(canvas, 30, 5, 3, 6, &rect_white_dsc);
-    canvas_draw_rect(canvas, 31, 6, 1, 4, &rect_black_dsc);
+    canvas_draw_rect(canvas, x, 2, 29, 12, &rect_white_dsc);
+    canvas_draw_rect(canvas, x + 1, 3, 27, 10, &rect_black_dsc);
+    canvas_draw_rect(canvas, x + 30, 5, 3, 6, &rect_white_dsc);
+    canvas_draw_rect(canvas, x + 31, 6, 1, 4, &rect_black_dsc);
 
-    if (state->charging) {
+    if (!connected || !valid) {
+        lv_draw_label_dsc_t label_dsc;
+        init_label_dsc(&label_dsc, LVGL_FOREGROUND, &lv_font_montserrat_16, LV_TEXT_ALIGN_CENTER);
+        canvas_draw_text(canvas, x + 2, -2, 25, &label_dsc, "?");
+        return;
+    }
+    uint8_t fill = (MIN(level, 100) + 2) / 4;
+    if (fill > 0) {
+        canvas_draw_rect(canvas, x + 2, 4, fill, 8, &rect_white_dsc);
+    }
+    if (charging) {
         lv_draw_image_dsc_t img_dsc;
         lv_draw_image_dsc_init(&img_dsc);
-        canvas_draw_img(canvas, 9, -1, &bolt, &img_dsc);
+        canvas_draw_img(canvas, x + 9, -1, &bolt, &img_dsc);
     }
 }
 

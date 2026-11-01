@@ -5,6 +5,11 @@
  */
 
 / {
+    syncbat: syncbat {
+        compatible = "zmk,behavior-sync-battery";
+        #binding-cells = <2>;
+    };
+
     chosen {
         zephyr,console = &sync_cdc_acm_console;
     };

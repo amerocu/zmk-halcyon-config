@@ -1,0 +1,38 @@
+# SPDX-License-Identifier: MIT
+
+if SHIELD_MOD_SPLIT_STATE_SYNC
+
+choice SPLIT_STATE_SYNC_DEVICE
+    prompt "Split state sync device identity"
+    default SPLIT_STATE_SYNC_DEVICE_DONGLE if SHIELD_HALCYON_CORNE_DONGLE
+    default SPLIT_STATE_SYNC_DEVICE_LEFT if SHIELD_HALCYON_CORNE_LEFT
+    default SPLIT_STATE_SYNC_DEVICE_RIGHT
+
+config SPLIT_STATE_SYNC_DEVICE_DONGLE
+    bool "dongle"
+    depends on ZMK_SPLIT_ROLE_CENTRAL
+
+config SPLIT_STATE_SYNC_DEVICE_LEFT
+    bool "left"
+
+config SPLIT_STATE_SYNC_DEVICE_RIGHT
+    bool "right"
+
+endchoice
+
+config SPLIT_STATE_SYNC_DEVICE_NAME
+    string
+    default "dongle" if SPLIT_STATE_SYNC_DEVICE_DONGLE
+    default "left" if SPLIT_STATE_SYNC_DEVICE_LEFT
+    default "right" if SPLIT_STATE_SYNC_DEVICE_RIGHT
+
+config BT_DIS_SERIAL_NUMBER
+    default y
+
+config BT_DIS_SERIAL_NUMBER_STR
+    default SPLIT_STATE_SYNC_DEVICE_NAME
+
+config ZMK_SPLIT_BLE_CENTRAL_BATTERY_LEVEL_FETCHING
+    default y if SPLIT_STATE_SYNC_DEVICE_DONGLE
+
+endif

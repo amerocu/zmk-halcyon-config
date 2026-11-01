@@ -2,3 +2,5 @@
 build/
 firmware/
 vendor/
+/logs/
+__pycache__/

@@ -3,6 +3,7 @@
 #include <zephyr/kernel.h>
 #include "util.h"
 #include "mod_lock.h"
+#include "sync_battery.h"
 
 struct zmk_widget_status {
     sys_snode_t node;
@@ -12,6 +13,7 @@ struct zmk_widget_status {
     uint8_t cbuf2[SECTION_BUF_SIZE(LAYER_HEIGHT)];
     uint8_t cbuf3[SECTION_BUF_SIZE(MODIFIER_HEIGHT)];
     struct status_state state;
+    struct sync_battery_state right_battery;
     struct mod_lock_state mod_lock;
     uint8_t layer;
 };

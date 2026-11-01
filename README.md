@@ -236,6 +236,27 @@ Building the Halcyon boards and shields is of course also possible locally. For 
 The only thing of note is that you will need to add the following repository as a module.
 - [splitkb/zmk-halcyon-module](https://github.com/splitkb/zmk-halcyon-module)
 
+## Custom Corne status and diagnostics
+
+The active `build.yaml` targets a dongle, a left half with the custom e-paper
+display, and a right half with Cirque. The [split-state sync module](boards/shields/mod_split_state_sync/README.md)
+documents device identities, battery/USB-power forwarding, and reconnect behavior.
+
+For local debugging, run `just build --debug` inside `nix develop`, then
+`just flash`. Start `just logs` before restarting or connecting the devices.
+The streamer discovers USB serial devices continuously and assigns a fresh
+`device-N` ID to each connection, including reconnects. It also waits when no
+devices are connected. Captures under `logs/` are gitignored.
+
+Run the host-side regression checks with:
+
+```sh
+python3 -B -m unittest discover -s tests -p 'test_*.py'
+```
+
+See [tests/README.md](tests/README.md) for coverage, requirements, and individual
+suite commands. The battery checks require a host `cc` with AddressSanitizer support.
+
 
 # Config options
 

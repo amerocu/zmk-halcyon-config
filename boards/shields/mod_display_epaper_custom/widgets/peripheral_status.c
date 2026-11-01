@@ -44,6 +44,10 @@ static void draw_top(lv_obj_t *canvas, const void *context) {
     lv_draw_label_dsc_t label_dsc;
     init_label_dsc(&label_dsc, LVGL_FOREGROUND, &lv_font_montserrat_16, LV_TEXT_ALIGN_RIGHT);
     draw_battery(canvas, state);
+#if IS_ENABLED(CONFIG_SPLIT_STATE_SYNC_DEVICE_LEFT)
+    draw_battery_icon(canvas, 35, widget->right_battery.level, widget->right_battery.charging,
+                      widget->right_battery.connected, widget->right_battery.valid);
+#endif
     canvas_draw_text(canvas, 0, 0, CANVAS_SIZE, &label_dsc,
                      state->connected ? LV_SYMBOL_WIFI : LV_SYMBOL_CLOSE);
 
@@ -102,6 +106,28 @@ ZMK_DISPLAY_WIDGET_LISTENER(widget_battery_status, struct battery_status_state,
 ZMK_SUBSCRIPTION(widget_battery_status, zmk_battery_state_changed);
 #if IS_ENABLED(CONFIG_USB_DEVICE_STACK)
 ZMK_SUBSCRIPTION(widget_battery_status, zmk_usb_conn_state_changed);
+#endif
+
+#if IS_ENABLED(CONFIG_SPLIT_STATE_SYNC_DEVICE_LEFT)
+static void right_battery_update_cb(struct sync_battery_state state) {
+    struct zmk_widget_status *widget;
+    SYS_SLIST_FOR_EACH_CONTAINER(&widgets, widget, node) {
+        if (!sync_battery_equal(widget->right_battery, state)) {
+            LOG_DBG("split sync: redraw battery status connected=%d valid=%d level=%u charging=%d",
+                    state.connected, state.valid, state.level, state.charging);
+            widget->right_battery = state;
+            redraw_section(&widget->sections[SECTION_STATUS]);
+        }
+    }
+}
+
+static struct sync_battery_state right_battery_get_state(const zmk_event_t *eh) {
+    return sync_battery_get();
+}
+
+ZMK_DISPLAY_WIDGET_LISTENER(widget_right_battery, struct sync_battery_state,
+                            right_battery_update_cb, right_battery_get_state)
+ZMK_SUBSCRIPTION(widget_right_battery, zmk_sync_battery_state_changed);
 #endif
 
 static struct peripheral_status_state get_state(const zmk_event_t *_eh) {
@@ -173,6 +199,9 @@ int zmk_widget_status_init(struct zmk_widget_status *widget, lv_obj_t *parent) {
     sys_slist_append(&widgets, &widget->node);
     widget_battery_status_init();
     widget_peripheral_status_init();
+#if IS_ENABLED(CONFIG_SPLIT_STATE_SYNC_DEVICE_LEFT)
+    widget_right_battery_init();
+#endif
     zmk_widget_status_redraw(widget);
 
     return 0;
