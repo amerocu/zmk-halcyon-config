@@ -18,7 +18,6 @@ LOG_MODULE_DECLARE(zmk, CONFIG_ZMK_LOG_LEVEL);
 #include <zmk/events/usb_conn_state_changed.h>
 #include <zmk/event_manager.h>
 #include <zmk/events/battery_state_changed.h>
-#include <zmk/events/hid_indicators_changed.h>
 #include <zmk/split/bluetooth/peripheral.h>
 #include <zmk/events/split_peripheral_status_changed.h>
 #include <zmk/usb.h>
@@ -37,15 +36,13 @@ struct peripheral_status_state {
     bool connected;
 };
 
-static void draw_top(lv_obj_t *widget, const struct status_state *state) {
-    lv_obj_t *canvas = lv_obj_get_child(widget, 0);
+static void draw_top(lv_obj_t *canvas, const void *context) {
+    const struct zmk_widget_status *widget = context;
+    const struct status_state *state = &widget->state;
+    canvas = begin_canvas(canvas);
 
     lv_draw_label_dsc_t label_dsc;
     init_label_dsc(&label_dsc, LVGL_FOREGROUND, &lv_font_montserrat_16, LV_TEXT_ALIGN_RIGHT);
-    lv_draw_rect_dsc_t rect_black_dsc;
-    init_rect_dsc(&rect_black_dsc, LVGL_BACKGROUND);
-
-    canvas_draw_rect(canvas, 0, 0, CANVAS_SIZE, CANVAS_SIZE, &rect_black_dsc);
     draw_battery(canvas, state);
     canvas_draw_text(canvas, 0, 0, CANVAS_SIZE, &label_dsc,
                      state->connected ? LV_SYMBOL_WIFI : LV_SYMBOL_CLOSE);
@@ -53,16 +50,13 @@ static void draw_top(lv_obj_t *widget, const struct status_state *state) {
     rotate_canvas(canvas);
 }
 
-static void draw_layer(lv_obj_t *widget, uint8_t layer_index) {
-    lv_obj_t *canvas = lv_obj_get_child(widget, 1);
+static void draw_layer(lv_obj_t *canvas, const void *context) {
+    const struct zmk_widget_status *widget = context;
+    const uint8_t layer_index = widget->layer;
+    canvas = begin_canvas(canvas);
 
     lv_draw_label_dsc_t label_dsc;
     init_label_dsc(&label_dsc, LVGL_FOREGROUND, &lv_font_montserrat_16, LV_TEXT_ALIGN_CENTER);
-    lv_draw_rect_dsc_t rect_bg_dsc;
-    init_rect_dsc(&rect_bg_dsc, LVGL_BACKGROUND);
-
-    canvas_draw_rect(canvas, 0, 0, CANVAS_SIZE, CANVAS_SIZE, &rect_bg_dsc);
-
     const char *name = (layer_index < LAYER_NAME_COUNT) ? layer_names[layer_index] : NULL;
     if (name == NULL) {
         char text[10] = {};
@@ -77,11 +71,15 @@ static void draw_layer(lv_obj_t *widget, uint8_t layer_index) {
 
 static void set_battery_status(struct zmk_widget_status *widget,
                                struct battery_status_state state) {
+    bool changed = widget->state.battery != state.level;
 #if IS_ENABLED(CONFIG_USB_DEVICE_STACK)
+    changed |= widget->state.charging != state.usb_present;
     widget->state.charging = state.usb_present;
 #endif
     widget->state.battery = state.level;
-    draw_top(widget->obj, &widget->state);
+    if (changed) {
+        redraw_section(&widget->sections[SECTION_STATUS]);
+    }
 }
 
 static void battery_status_update_cb(struct battery_status_state state) {
@@ -112,8 +110,11 @@ static struct peripheral_status_state get_state(const zmk_event_t *_eh) {
 
 static void set_connection_status(struct zmk_widget_status *widget,
                                   struct peripheral_status_state state) {
+    bool changed = widget->state.connected != state.connected;
     widget->state.connected = state.connected;
-    draw_top(widget->obj, &widget->state);
+    if (changed) {
+        redraw_section(&widget->sections[SECTION_STATUS]);
+    }
 }
 
 static void output_status_update_cb(struct peripheral_status_state state) {
@@ -126,15 +127,17 @@ ZMK_DISPLAY_WIDGET_LISTENER(widget_peripheral_status, struct peripheral_status_s
 ZMK_SUBSCRIPTION(widget_peripheral_status, zmk_split_peripheral_status_changed);
 
 static void sync_draw_work_cb(struct k_work *work) {
+    const struct peripheral_state state = synced_state;
     struct zmk_widget_status *widget;
     SYS_SLIST_FOR_EACH_CONTAINER(&widgets, widget, node) {
-        draw_layer(widget->obj, synced_state.layer);
-
-        widget->mod_lock.mods = synced_state.mods;
-        widget->mod_lock.caps_word = synced_state.caps_word;
-        widget->mod_lock.mac = synced_state.mac;
-
-        draw_modlock(lv_obj_get_child(widget->obj, 2), &widget->mod_lock);
+        if (widget->layer != state.layer) {
+            widget->layer = state.layer;
+            redraw_section(&widget->sections[SECTION_LAYER]);
+        }
+        if (widget->mod_lock.mods != state.mods) {
+            widget->mod_lock.mods = state.mods;
+            redraw_section(&widget->sections[SECTION_MODIFIERS]);
+        }
     }
 }
 
@@ -144,50 +147,33 @@ void sync_state_draw(void) {
     k_work_submit_to_queue(zmk_display_work_q(), &sync_draw_work);
 }
 
-static void hid_indicators_update_cb(struct zmk_hid_indicators_changed state) {
-    struct zmk_widget_status *widget;
-    SYS_SLIST_FOR_EACH_CONTAINER(&widgets, widget, node) {
-        widget->mod_lock.leds = state.indicators;
-        draw_modlock(lv_obj_get_child(widget->obj, 2), &widget->mod_lock);
-    }
+void zmk_widget_status_redraw(struct zmk_widget_status *widget) {
+    redraw_screen(widget->sections, ARRAY_SIZE(widget->sections), lv_obj_get_screen(widget->obj));
 }
-
-static struct zmk_hid_indicators_changed
-hid_indicators_get_state(const zmk_event_t *eh) {
-    const struct zmk_hid_indicators_changed *ev = as_zmk_hid_indicators_changed(eh);
-    return ev ? *ev : (struct zmk_hid_indicators_changed){0};
-}
-
-ZMK_DISPLAY_WIDGET_LISTENER(widget_hid_indicators, struct zmk_hid_indicators_changed,
-                            hid_indicators_update_cb, hid_indicators_get_state)
-
-ZMK_SUBSCRIPTION(widget_hid_indicators, zmk_hid_indicators_changed);
 
 int zmk_widget_status_init(struct zmk_widget_status *widget, lv_obj_t *parent) {
     widget->obj = lv_obj_create(parent);
-    lv_obj_set_size(widget->obj, 184, 88);
+    lv_obj_remove_style_all(widget->obj);
+    lv_obj_remove_flag(widget->obj, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_set_size(widget->obj, SCREEN_LENGTH, CANVAS_SIZE);
     lv_obj_set_style_bg_color(widget->obj, lv_color_white(), LV_PART_MAIN);
     lv_obj_set_style_bg_opa(widget->obj, LV_OPA_COVER, LV_PART_MAIN);
 
-    lv_obj_t *top = lv_canvas_create(widget->obj);
-    lv_obj_align(top, LV_ALIGN_TOP_LEFT, 0, 0);
-    lv_canvas_set_buffer(top, widget->cbuf, CANVAS_SIZE, CANVAS_SIZE, CANVAS_COLOR_FORMAT);
+    memset(widget->sections, 0, sizeof(widget->sections));
+    init_section(&widget->sections[SECTION_STATUS], widget->obj, widget->cbuf,
+                 STATUS_HEIGHT, STATUS_OFFSET, draw_top, widget);
+    init_section(&widget->sections[SECTION_LAYER], widget->obj, widget->cbuf2,
+                 LAYER_HEIGHT, LAYER_OFFSET, draw_layer, widget);
+    init_section(&widget->sections[SECTION_MODIFIERS], widget->obj, widget->cbuf3,
+                 MODIFIER_HEIGHT, MODIFIER_OFFSET, draw_modlock, &widget->mod_lock);
 
-    lv_obj_t *layer = lv_canvas_create(widget->obj);
-    lv_obj_align(layer, LV_ALIGN_TOP_LEFT, 24, 0);
-    lv_canvas_set_buffer(layer, widget->cbuf2, CANVAS_SIZE, CANVAS_SIZE, CANVAS_COLOR_FORMAT);
-
-    lv_obj_t *modlock = lv_canvas_create(widget->obj);
-    lv_obj_align(modlock, LV_ALIGN_TOP_LEFT, 44, 0);
-    lv_canvas_set_buffer(modlock, widget->cbuf3, CANVAS_SIZE, CANVAS_SIZE, CANVAS_COLOR_FORMAT);
-
-    draw_modlock(modlock, &widget->mod_lock);
-    draw_layer(widget->obj, 0);
+    widget->layer = synced_state.layer;
+    widget->mod_lock.mods = synced_state.mods;
 
     sys_slist_append(&widgets, &widget->node);
     widget_battery_status_init();
     widget_peripheral_status_init();
-    widget_hid_indicators_init();
+    zmk_widget_status_redraw(widget);
 
     return 0;
 }

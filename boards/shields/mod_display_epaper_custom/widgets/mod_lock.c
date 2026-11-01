@@ -17,14 +17,13 @@
 
 static void draw_slot(lv_obj_t *canvas, lv_coord_t x, lv_coord_t y, lv_coord_t w, lv_coord_t h,
                       const lv_image_dsc_t *icon, bool active) {
-    lv_coord_t ix = x + (w - icon->header.w) / 2;
     lv_coord_t iy = y + (h - icon->header.h) / 2;
+    lv_coord_t ix = x + (w - icon->header.w) / 2;
 
     if (active) {
         lv_draw_rect_dsc_t rect_dsc;
         init_rect_dsc(&rect_dsc, LVGL_FOREGROUND);
         canvas_draw_rect(canvas, x, y, w, h, &rect_dsc);
-
     }
 
     lv_draw_image_dsc_t img_dsc;
@@ -32,23 +31,22 @@ static void draw_slot(lv_obj_t *canvas, lv_coord_t x, lv_coord_t y, lv_coord_t w
     canvas_draw_img(canvas, ix, iy, icon, &img_dsc);
 }
 
-void draw_modlock(lv_obj_t *canvas, const struct mod_lock_state *state) {
-    lv_draw_rect_dsc_t rect_bg_dsc;
-    init_rect_dsc(&rect_bg_dsc, LVGL_BACKGROUND);
-    canvas_draw_rect(canvas, 0, 0, CANVAS_SIZE, CANVAS_SIZE, &rect_bg_dsc);
+void draw_modlock(lv_obj_t *canvas, const void *context) {
+    const struct mod_lock_state *state = context;
+    canvas = begin_canvas(canvas);
 
-    /* Two 36px slots per axis, with a 4px gap and 6px outer margins. */
-    static const lv_coord_t mod_x[4] = {6, 46, 6, 46};
-    static const lv_coord_t mod_y[4] = {6, 6, 46, 46};
-    const lv_image_dsc_t *mod_icons[4] = {
-        &mod_control, &mod_opt, &mod_cmd, &mod_shift};
-    const lv_image_dsc_t *mod_inverted[4] = {
-        &mod_control_white, &mod_opt_white, &mod_cmd_white, &mod_shift_white};
-    const uint8_t mod_masks[4] = {MOD_MASK_CTRL, MOD_MASK_ALT, MOD_MASK_GUI, MOD_MASK_SHIFT};
+    /* This entire 20px-high section sits at the bottom of the display. */
+    static const lv_coord_t mod_x[4] = {0, 22, 44, 66};
+    const lv_image_dsc_t *small_icons[4] = {
+        &mod_cmd_small, &mod_opt_small, &mod_control_small, &mod_shift_small};
+    const lv_image_dsc_t *small_inverted[4] = {
+        &mod_cmd_small_white, &mod_opt_small_white,
+        &mod_control_small_white, &mod_shift_small_white};
+    const uint8_t mod_masks[4] = {MOD_MASK_GUI, MOD_MASK_ALT, MOD_MASK_CTRL, MOD_MASK_SHIFT};
     for (int i = 0; i < 4; i++) {
         bool active = (state->mods & mod_masks[i]) != 0;
-        draw_slot(canvas, mod_x[i], mod_y[i], 36, 36,
-                  active ? mod_inverted[i] : mod_icons[i], active);
+        draw_slot(canvas, mod_x[i], 0, 22, MODIFIER_HEIGHT,
+                  active ? small_inverted[i] : small_icons[i], active);
     }
 
     rotate_canvas(canvas);

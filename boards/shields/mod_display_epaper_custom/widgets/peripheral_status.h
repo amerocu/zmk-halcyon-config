@@ -7,12 +7,16 @@
 struct zmk_widget_status {
     sys_snode_t node;
     lv_obj_t *obj;
-    uint8_t cbuf[CANVAS_BUF_SIZE];
-    uint8_t cbuf2[CANVAS_BUF_SIZE];
-    uint8_t cbuf3[CANVAS_BUF_SIZE];
+    struct display_section sections[SECTION_COUNT];
+    uint8_t cbuf[SECTION_BUF_SIZE(STATUS_HEIGHT)];
+    uint8_t cbuf2[SECTION_BUF_SIZE(LAYER_HEIGHT)];
+    uint8_t cbuf3[SECTION_BUF_SIZE(MODIFIER_HEIGHT)];
     struct status_state state;
     struct mod_lock_state mod_lock;
+    uint8_t layer;
 };
 
 int zmk_widget_status_init(struct zmk_widget_status *widget, lv_obj_t *parent);
+/* Call on the display queue. Routine updates use redraw_section() instead. */
+void zmk_widget_status_redraw(struct zmk_widget_status *widget);
 lv_obj_t *zmk_widget_status_obj(struct zmk_widget_status *widget);

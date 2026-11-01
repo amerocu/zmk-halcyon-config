@@ -6,6 +6,7 @@
  */
 
 #include <zephyr/kernel.h>
+#include <string.h>
 
 #include <zephyr/logging/log.h>
 LOG_MODULE_DECLARE(zmk, CONFIG_ZMK_LOG_LEVEL);
@@ -42,8 +43,10 @@ struct layer_status_state {
     const char *label;
 };
 
-static void draw_top(lv_obj_t *widget, const struct status_state *state) {
-    lv_obj_t *canvas = lv_obj_get_child(widget, 0);
+static void draw_top(lv_obj_t *canvas, const void *context) {
+    const struct zmk_widget_status *widget = context;
+    const struct status_state *state = &widget->state;
+    canvas = begin_canvas(canvas);
 
     lv_draw_label_dsc_t label_dsc;
     init_label_dsc(&label_dsc, LVGL_FOREGROUND, &lv_font_montserrat_16, LV_TEXT_ALIGN_RIGHT);
@@ -85,8 +88,10 @@ static void draw_top(lv_obj_t *widget, const struct status_state *state) {
     rotate_canvas(canvas);
 }
 
-static void draw_middle(lv_obj_t *widget, const struct status_state *state) {
-    lv_obj_t *canvas = lv_obj_get_child(widget, 2);
+static void draw_profiles(lv_obj_t *canvas, const void *context) {
+    const struct zmk_widget_status *widget = context;
+    const struct status_state *state = &widget->state;
+    canvas = begin_canvas(canvas);
 
     lv_draw_rect_dsc_t rect_black_dsc;
     init_rect_dsc(&rect_black_dsc, LVGL_BACKGROUND);
@@ -139,8 +144,10 @@ static void draw_middle(lv_obj_t *widget, const struct status_state *state) {
     rotate_canvas(canvas);
 }
 
-static void draw_bottom(lv_obj_t *widget, const struct status_state *state) {
-    lv_obj_t *canvas = lv_obj_get_child(widget, 1);
+static void draw_layer(lv_obj_t *canvas, const void *context) {
+    const struct zmk_widget_status *widget = context;
+    const struct status_state *state = &widget->state;
+    canvas = begin_canvas(canvas);
 
     lv_draw_rect_dsc_t rect_black_dsc;
     init_rect_dsc(&rect_black_dsc, LVGL_BACKGROUND);
@@ -166,14 +173,18 @@ static void draw_bottom(lv_obj_t *widget, const struct status_state *state) {
 }
 
 static void set_battery_status(struct zmk_widget_status *widget,
-                               struct battery_status_state state) {
+                                struct battery_status_state state) {
+    bool changed = widget->state.battery != state.level;
 #if IS_ENABLED(CONFIG_USB_DEVICE_STACK)
+    changed |= widget->state.charging != state.usb_present;
     widget->state.charging = state.usb_present;
 #endif /* IS_ENABLED(CONFIG_USB_DEVICE_STACK) */
 
     widget->state.battery = state.level;
 
-    draw_top(widget->obj, &widget->state);
+    if (changed) {
+        redraw_section(&widget->sections[SECTION_STATUS]);
+    }
 }
 
 static void battery_status_update_cb(struct battery_status_state state) {
@@ -201,18 +212,29 @@ ZMK_SUBSCRIPTION(widget_battery_status, zmk_usb_conn_state_changed);
 #endif /* IS_ENABLED(CONFIG_USB_DEVICE_STACK) */
 
 static void set_output_status(struct zmk_widget_status *widget,
-                              const struct output_status_state *state) {
+                               const struct output_status_state *state) {
+    const bool status_changed =
+        !zmk_endpoint_instance_eq(widget->state.selected_endpoint, state->selected_endpoint) ||
+        widget->state.active_profile_connected != state->active_profile_connected ||
+        widget->state.active_profile_bonded != state->active_profile_bonded;
+    bool profiles_changed = widget->state.active_profile_index != state->active_profile_index;
     widget->state.selected_endpoint = state->selected_endpoint;
     widget->state.active_profile_index = state->active_profile_index;
     widget->state.active_profile_connected = state->active_profile_connected;
     widget->state.active_profile_bonded = state->active_profile_bonded;
     for (int i = 0; i < NICEVIEW_PROFILE_COUNT; ++i) {
+        profiles_changed |= widget->state.profiles_connected[i] != state->profiles_connected[i] ||
+                            widget->state.profiles_bonded[i] != state->profiles_bonded[i];
         widget->state.profiles_connected[i] = state->profiles_connected[i];
         widget->state.profiles_bonded[i] = state->profiles_bonded[i];
     }
 
-    draw_top(widget->obj, &widget->state);
-    draw_middle(widget->obj, &widget->state);
+    if (status_changed) {
+        redraw_section(&widget->sections[SECTION_STATUS]);
+    }
+    if (profiles_changed) {
+        redraw_section(&widget->sections[SECTION_PROFILES]);
+    }
 }
 
 static void output_status_update_cb(struct output_status_state state) {
@@ -246,11 +268,13 @@ ZMK_SUBSCRIPTION(widget_output_status, zmk_ble_active_profile_changed);
 #endif
 
 static void set_layer_status(struct zmk_widget_status *widget, struct layer_status_state state) {
+    bool changed = widget->state.layer_index != state.index || widget->state.layer_label != state.label;
     widget->state.layer_index = state.index;
     widget->state.layer_label = state.label;
 
-    draw_middle(widget->obj, &widget->state);
-    draw_bottom(widget->obj, &widget->state);
+    if (changed) {
+        redraw_section(&widget->sections[SECTION_LAYER]);
+    }
 }
 
 static void layer_status_update_cb(struct layer_status_state state) {
@@ -272,10 +296,10 @@ ZMK_SUBSCRIPTION(widget_layer_status, zmk_layer_state_changed);
 static void sync_draw_work_cb(struct k_work *work) {
     struct zmk_widget_status *widget;
     SYS_SLIST_FOR_EACH_CONTAINER(&widgets, widget, node) {
-        widget->mod_lock.mods = synced_state.mods;
-        widget->mod_lock.caps_word = synced_state.caps_word;
-        widget->mod_lock.mac = synced_state.mac;
-        draw_modlock(lv_obj_get_child(widget->obj, 3), &widget->mod_lock);
+        if (widget->mod_lock.mods != synced_state.mods) {
+            widget->mod_lock.mods = synced_state.mods;
+            redraw_section(&widget->sections[SECTION_MODIFIERS]);
+        }
     }
 }
 
@@ -285,34 +309,34 @@ void sync_state_draw(void) {
     k_work_submit_to_queue(zmk_display_work_q(), &sync_draw_work);
 }
 
+void zmk_widget_status_redraw(struct zmk_widget_status *widget) {
+    redraw_screen(widget->sections, ARRAY_SIZE(widget->sections), lv_obj_get_screen(widget->obj));
+}
+
 int zmk_widget_status_init(struct zmk_widget_status *widget, lv_obj_t *parent) {
     widget->obj = lv_obj_create(parent);
-    lv_obj_set_size(widget->obj, 184, 88);
-    lv_obj_t *top = lv_canvas_create(widget->obj);
-    lv_obj_align(top, LV_ALIGN_TOP_LEFT, 0, 0);
-    lv_canvas_set_buffer(top, widget->cbuf, CANVAS_SIZE, CANVAS_SIZE, CANVAS_COLOR_FORMAT);
-    lv_obj_t *middle = lv_canvas_create(widget->obj);
-    lv_obj_align(middle, LV_ALIGN_TOP_LEFT, 24, 0);
-    lv_canvas_set_buffer(middle, widget->cbuf2, CANVAS_SIZE, CANVAS_SIZE, CANVAS_COLOR_FORMAT);
-    lv_obj_t *bottom = lv_canvas_create(widget->obj);
-    lv_obj_align(bottom, LV_ALIGN_TOP_LEFT, 44, 0);
-    lv_canvas_set_buffer(bottom, widget->cbuf3, CANVAS_SIZE, CANVAS_SIZE, CANVAS_COLOR_FORMAT);
-
-    lv_obj_t *modlock = lv_canvas_create(widget->obj);
-    lv_obj_align(modlock, LV_ALIGN_TOP_LEFT, 96, 0);
-    lv_canvas_set_buffer(modlock, widget->cbuf4, CANVAS_SIZE, CANVAS_SIZE, CANVAS_COLOR_FORMAT);
+    lv_obj_remove_style_all(widget->obj);
+    lv_obj_remove_flag(widget->obj, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_set_size(widget->obj, SCREEN_LENGTH, CANVAS_SIZE);
+    memset(widget->sections, 0, sizeof(widget->sections));
+    init_section(&widget->sections[SECTION_STATUS], widget->obj, widget->cbuf,
+                 STATUS_HEIGHT, STATUS_OFFSET, draw_top, widget);
+    init_section(&widget->sections[SECTION_LAYER], widget->obj, widget->cbuf2,
+                 LAYER_HEIGHT, LAYER_OFFSET, draw_layer, widget);
+    init_section(&widget->sections[SECTION_PROFILES], widget->obj, widget->cbuf3,
+                 PROFILE_HEIGHT, PROFILE_OFFSET, draw_profiles, widget);
+    init_section(&widget->sections[SECTION_MODIFIERS], widget->obj, widget->cbuf4,
+                 MODIFIER_HEIGHT, MODIFIER_OFFSET, draw_modlock, &widget->mod_lock);
 
     lv_obj_set_style_bg_color(widget->obj, lv_color_white(), LV_PART_MAIN);
     lv_obj_set_style_bg_opa(widget->obj, LV_OPA_COVER, LV_PART_MAIN);
 
-    draw_modlock(modlock, &(struct mod_lock_state){0});
-
-
-
+    widget->mod_lock.mods = synced_state.mods;
     sys_slist_append(&widgets, &widget->node);
     widget_battery_status_init();
     widget_output_status_init();
     widget_layer_status_init();
+    zmk_widget_status_redraw(widget);
 
     return 0;
 }
