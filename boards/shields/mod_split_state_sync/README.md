@@ -79,8 +79,9 @@ does not shut itself down.
 Each half latches the request and schedules system work, keeping the BLE receive
 callback short. Duplicate requests are ignored; a queue failure clears the latch
 so shutdown can be retried. The worker raises a local sleep activity event before
-calling `zmk_pm_soft_off()` so local power listeners can finish their cleanup.
-`split_poweroff_requested()` distinguishes manual shutdown from automatic sleep.
+calling `zmk_pm_soft_off()`: this gives the left's custom display handler time to
+finish its `BYE` screen and lets VIK sleep handlers release their pins. Automatic
+sleep does not set the manual latch, so it selects the sleeping cat instead.
 
 Both peripheral targets enable `CONFIG_ZMK_PM_SOFT_OFF=y`. Manual soft-off
 disables ordinary key wake; reset or remove/restore power to start again.

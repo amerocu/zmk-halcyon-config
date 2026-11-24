@@ -1,7 +1,7 @@
 # Host-side tests
 
-This directory contains regression tests for the log streamer and split battery
-sync. They run on your computer without a keyboard, flashing, or a Zephyr SDK.
+This directory contains regression tests for the log streamer, split battery
+sync, and power transitions. They run without a keyboard, flashing, or a Zephyr SDK.
 The operational tools remain in `scripts/`.
 
 ## Requirements
@@ -10,6 +10,7 @@ The operational tools remain in `scripts/`.
 - For battery tests, a native host compiler available as `cc` with AddressSanitizer
   support (for example, GCC or Clang with its sanitizer runtime installed).
   Use a compiler that produces executables for your computer, not ARM firmware.
+- Power tests also need `cc`, but do not require AddressSanitizer.
 
 If `cc` is missing, the battery suite is reported as skipped. If it is present
 but cannot build or run AddressSanitizer programs, the test fails with compiler
@@ -75,6 +76,28 @@ The Python runner creates temporary adapter headers and a host executable in a
 system temporary directory. They are removed when the test finishes; they are
 not firmware artifacts and are not written into the repository. The fixture
 sources themselves are maintained test code and belong in version control.
+
+### Power transitions — `test_power.py`
+
+Compiles the production shutdown behavior for dongle, plain peripheral, and
+display-peripheral roles. The display role includes the production VIK pin
+handler; adapters in `fixtures/power/` check:
+
+- Shutdown triggers on release, is queued outside BLE handling, and ignores duplicates.
+- The real `SYS_INIT` level/priority enables VIK power before simulated DBI/panel
+  initialization, without modifying the bus pins. Boot GPIO errors are propagated.
+- The dongle stays powered and queue failures allow retrying.
+- Idle preserves the normal display; automatic sleep selects the sleeping cat.
+- Manual shutdown selects `BYE`, finishes the display callback before releasing
+  control/output pins, then calls soft-off.
+- Both Neko sprites fit their buffers with minimal and padded
+  strides; rerendering clears stale artwork and leaves guard bytes intact.
+
+Run just this suite with
+`python3 -B -m unittest discover -s tests -p 'test_power.py'`.
+It does not simulate the physical e-paper waveform or BLE command delivery; see
+the [display guide](../boards/shields/mod_display_epaper_custom/README.md#verification)
+for hardware checks.
 
 ## Hardware verification
 

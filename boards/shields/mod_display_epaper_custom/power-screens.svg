@@ -1,0 +1,67 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="416" height="416" viewBox="0 0 208 208">
+  <!-- Framebuffer previews; Neko sprites Copyright © 2022 adryd, MIT. See widgets/LICENSE.oneko. -->
+  <rect width="208" height="208" fill="white"/>
+  <g font-family="sans-serif" font-size="10" text-anchor="middle">
+    <text x="44" y="15">Sleep</text><text x="164" y="15">Off</text>
+  </g>
+  <g transform="translate(0 24)" fill="black" shape-rendering="crispEdges">
+    <path d="
+      M28 78h12v2h-12z
+      M36 80h2v2h-2z M48 80h8v2h-8z
+      M32 82h4v2h-4z M52 82h2v2h-2z
+      M32 84h2v2h-2z M50 84h2v2h-2z M58 84h4v2h-4z
+      M28 86h12v2h-12z M48 86h10v2h-10z M60 86h2v2h-2z
+      M42 88h2v2h-2z M54 88h4v2h-4z M60 88h2v2h-2z
+      M40 90h6v2h-6z M54 90h2v2h-2z M62 90h2v2h-2z
+      M34 92h8v2h-8z M44 92h12v2h-12z M62 92h4v2h-4z
+      M30 94h4v2h-4z M38 94h2v2h-2z M46 94h2v2h-2z M52 94h2v2h-2z M62 94h2v2h-2z M66 94h2v2h-2z
+      M28 96h2v2h-2z M38 96h2v2h-2z M48 96h4v2h-4z M64 96h2v2h-2z M68 96h2v2h-2z
+      M26 98h2v4h-2z M36 98h2v4h-2z M66 98h4v4h-4z
+      M26 102h2v2h-2z M36 102h2v2h-2z M66 102h6v2h-6z
+      M24 104h2v2h-2z M36 104h2v2h-2z M62 104h2v2h-2z M66 104h2v2h-2z M70 104h2v2h-2z
+      M24 106h2v2h-2z M38 106h2v2h-2z M42 106h6v2h-6z M60 106h2v2h-2z M66 106h2v2h-2z M70 106h2v2h-2z
+      M24 108h2v2h-2z M38 108h2v2h-2z M48 108h4v2h-4z M58 108h2v2h-2z M66 108h2v2h-2z M70 108h4v2h-4z
+      M24 110h2v2h-2z M40 110h2v2h-2z M52 110h2v2h-2z M64 110h2v2h-2z M68 110h2v2h-2z M72 110h2v2h-2z
+      M24 112h2v2h-2z M42 112h2v2h-2z M56 112h2v2h-2z M60 112h4v2h-4z M66 112h4v2h-4z M72 112h2v2h-2z
+      M26 114h2v2h-2z M44 114h16v2h-16z M64 114h4v2h-4z M72 114h2v2h-2z
+      M28 116h12v2h-12z M52 116h8v2h-8z M64 116h2v2h-2z M70 116h4v2h-4z
+      M38 118h16v2h-16z M58 118h14v2h-14z
+    "/>
+  </g>
+  <g transform="translate(120 24)" fill="black" shape-rendering="crispEdges">
+    <path d="
+      M38 60h6v2h-6z
+      M38 62h2v2h-2z M44 62h18v2h-18z
+      M38 64h2v2h-2z M46 64h8v2h-8z M62 64h2v2h-2z
+      M38 66h2v2h-2z M48 66h2v2h-2z M54 66h2v2h-2z M58 66h8v2h-8z
+      M38 68h2v2h-2z M48 68h2v2h-2z M56 68h2v2h-2z M64 68h4v2h-4z M70 68h4v2h-4z
+      M38 70h2v2h-2z M48 70h2v2h-2z M58 70h2v2h-2z M66 70h4v2h-4z
+      M38 72h2v2h-2z M48 72h2v2h-2z M66 72h2v2h-2z
+      M38 74h2v2h-2z M66 74h2v2h-2z
+      M32 76h10v2h-10z M66 76h2v2h-2z
+      M26 78h6v2h-6z M42 78h2v2h-2z M64 78h2v2h-2z
+      M24 80h2v2h-2z M64 80h2v2h-2z
+      M22 82h2v2h-2z M60 82h4v2h-4z
+      M20 84h2v4h-2z M58 84h2v4h-2z
+      M18 88h2v2h-2z M58 88h2v2h-2z
+      M16 90h2v2h-2z M58 90h2v2h-2z
+      M16 92h2v2h-2z M44 92h4v2h-4z M56 92h4v2h-4z
+      M16 94h2v2h-2z M48 94h2v2h-2z M56 94h2v2h-2z
+      M16 96h2v2h-2z M48 96h4v2h-4z M56 96h2v2h-2z
+      M16 98h4v2h-4z M48 98h2v2h-2z M56 98h2v2h-2z
+      M16 100h4v2h-4z M48 100h2v2h-2z M54 100h2v2h-2z
+      M16 102h2v2h-2z M46 102h4v2h-4z M54 102h2v2h-2z
+      M14 104h4v2h-4z M22 104h2v2h-2z M28 104h4v2h-4z M44 104h4v2h-4z M50 104h4v2h-4z
+      M14 106h2v2h-2z M20 106h8v2h-8z M30 106h2v2h-2z M42 106h4v2h-4z M50 106h2v2h-2z
+      M12 108h2v2h-2z M18 108h4v2h-4z M24 108h2v2h-2z M30 108h2v2h-2z M40 108h6v2h-6z M48 108h4v2h-4z
+      M12 110h2v2h-2z M18 110h2v2h-2z M24 110h12v2h-12z M46 110h6v2h-6z
+      M14 112h4v2h-4z M34 112h8v2h-8z M50 112h2v2h-2z
+      M40 114h12v2h-12z
+      M22 133h8v4h-8z M38 133h4v4h-4z M46 133h4v4h-4z M54 133h12v4h-12z
+      M22 137h4v4h-4z M30 137h4v4h-4z M38 137h4v4h-4z M46 137h4v4h-4z M54 137h4v4h-4z
+      M22 141h8v4h-8z M42 141h4v4h-4z M54 141h8v4h-8z
+      M22 145h4v4h-4z M30 145h4v4h-4z M42 145h4v4h-4z M54 145h4v4h-4z
+      M22 149h8v4h-8z M42 149h4v4h-4z M54 149h12v4h-12z
+    "/>
+  </g>
+</svg>

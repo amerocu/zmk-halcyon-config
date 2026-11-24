@@ -7,3 +7,5 @@
  * individual windows; only this explicit full-refresh API enables blanking. */
 void epaper_refresh_init(void);
 void epaper_refresh_full(lv_obj_t *screen);
+/* Call on the display queue after lv_refr_now(); BUSY must still be awaited. */
+int epaper_refresh_result(void);

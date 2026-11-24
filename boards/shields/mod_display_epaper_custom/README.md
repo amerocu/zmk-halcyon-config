@@ -70,11 +70,86 @@ byte boundaries (for example, modifiers at 164–183 are flushed at 160–183).
 Keep the modifier offset bottom-anchored. Adding a new section does not require
 changing the modifier renderer or refresh implementation.
 
+## Idle, sleep, and shutdown screens
+
+The active `build.yaml` sets both halves to idle after **15 minutes** and deep
+sleep after **30 minutes** since their last local activity. Idle keeps the normal
+status screen. USB power prevents automatic deep sleep.
+
+On automatic deep sleep the left shows a sleeping Neko cat with Zs. Manual
+shutdown shows Neko heading away with `BYE`. The monochrome sprite data is in
+`widgets/power_art.c`; it renders directly into a small static I1 buffer in native
+orientation. It does not allocate a full-screen L8 scratch image. A separate
+LVGL root keeps late battery, connection, and layer updates off the final image.
+
+### Neko artwork
+
+The cat sprites come from [adryd325/oneko.js](https://github.com/adryd325/oneko.js),
+revision `5281d057c4ea9bd4f6f997ee96ba30491aed16c0`, under its MIT license
+(Copyright © 2022 adryd). The complete notice is preserved in
+[`widgets/LICENSE.oneko`](widgets/LICENSE.oneko).
+
+The source is [`oneko.gif`](https://raw.githubusercontent.com/adryd325/oneko.js/5281d057c4ea9bd4f6f997ee96ba30491aed16c0/oneko.gif)
+(SHA-256 `f4c5688eb8ee6f22b08ab8df361222307dc6fe2d5bdcfa12582cea694707e66d`).
+Using zero-based 32 × 32 cells, sleep uses column 2 / row 0 (`sleeping[0]`),
+and shutdown uses column 0 / row 3 (`NE[1]`). Transparent and white pixels become
+background; black pixels become foreground. Each sprite is scaled exactly 2× to
+64 × 64, with no smoothing or dithering. The sleeping frame includes its own Zs;
+only shutdown adds the existing `BYE` caption. Both screens are static.
+
+![Sleep and shutdown framebuffer previews](power-screens.svg)
+
+### Refresh ordering
+
+`power.c` replaces the external module's `SPLITKB_VIK_SLEEP` handler for this
+shield. At boot it enables only the VIK power supply at `POST_KERNEL` /
+`CONFIG_KERNEL_INIT_PRIORITY_DEVICE`, before the DBI and SSD1680 drivers initialize.
+Those drivers own RESET, CS, DC and BUSY during startup and normal operation.
+Enabling the supply at `APPLICATION` is too late: the controller would receive its
+initial reset/configuration while unpowered, leaving all screen updates frozen.
+Build assertions require the early power priority to precede both driver priorities.
+
+Sleep is handled in a defined order: queue the final screen, synchronously refresh
+it, wait for the SSD1680 BUSY line to clear, and only then release the pins. The dedicated display
+queue is required: the activity/shutdown worker waits for it to finish. Display
+errors and a final BUSY wait exceeding ten seconds are logged; shutdown still
+proceeds, consistent with this board's power-off-on-suspend-failure setting.
+
+### Manual shutdown
+
+Hold both outer Enter thumb keys to access Adjust, then **press and release O**.
+The `&pwroff` behavior sends shutdown to both connected halves. The dongle stays
+powered. The left finishes drawing `BYE`, and each half enters ZMK soft-off with
+normal key wake disabled. Wait for the image to finish before switching off the
+battery switches. The e-paper retains its image without power.
+
+Automatic sleep wakes on a key; manual soft-off needs a reset or power cycle.
+For a battery-switch power cycle, disconnect USB from the halves too: USB can
+continue supplying power with the battery switch off. To trigger shutdown, the
+halves must be awake and connected to the dongle. See the
+[split behavior documentation](../mod_split_state_sync/README.md#manual-shutdown).
+
 ## Verification
 
-`python3 scripts/test_epaper_refresh.py` exercises the actual custom flush callback
-against the fetched SSD16xx write/blanking functions with fake hardware endpoints.
-It checks individual and simultaneous section updates, an explicit full refresh,
-return to partial refresh, and monochrome conversion with padded source strides.
+`python3 -B -m unittest discover -s tests -p 'test_power.py'` checks production
+boot registration/order, supply enable before simulated driver initialization,
+GPIO readiness/setup failures, shutdown routing, sleep-versus-off selection,
+display completion before pin release, and artwork bounds with padded strides.
+It uses host adapters, not a
+physical panel.
 
-Build the active display firmware with `nix develop -c just build left`.
+Build all targets with `nix develop -c just build`, then flash all three UF2s.
+On hardware, check:
+
+1. At 15 minutes on battery, the status screen remains visible.
+2. At 30 minutes, the sleeping cat finishes drawing before the left disconnects;
+   a key wakes the half and restores the normal screen.
+3. Adjust + O shows `BYE` and shuts down both halves. Normal keys do not wake them.
+4. Turning both battery switches off preserves `BYE`; powering back on restores
+   the normal screen and Bluetooth connections.
+5. USB power prevents automatic sleep, but does not prevent manual shutdown.
+6. Battery/connection updates during the final refresh do not overwrite the cat.
+
+For a faster hardware check, temporarily override both timeout CMake arguments
+in `build.yaml` (for example, 10000 and 20000 milliseconds), then restore the
+15/30-minute values and rebuild before normal use.

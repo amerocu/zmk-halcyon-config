@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: MIT
  */
 
+#include <errno.h>
 #include <string.h>
 #include <zephyr/device.h>
 #include <zephyr/drivers/display.h>
@@ -22,6 +23,7 @@ static struct display_capabilities capabilities;
 static uint8_t pixels[DIV_ROUND_UP(PANEL_WIDTH, 8) * PANEL_HEIGHT];
 static bool full_requested;
 static bool full_in_progress;
+static int refresh_error;
 
 /* LVGL I1 is row-packed, with an eight-byte palette. The SSD16xx's normal
  * orientation is vertically tiled instead. Preserve Zephyr's mono mapping:
@@ -64,6 +66,7 @@ static void flush_section(lv_display_t *display, const lv_area_t *area, uint8_t 
     if (full_requested && !full_in_progress) {
         int err = display_blanking_on(panel);
         if (err) {
+            refresh_error = err;
             LOG_ERR("epaper full refresh: blanking failed (%d)", err);
             lv_display_flush_ready(display);
             return;
@@ -88,12 +91,14 @@ static void flush_section(lv_display_t *display, const lv_area_t *area, uint8_t 
             area->x1, area->y1, area->x2, area->y2, last);
     int err = display_write(panel, area->x1, area->y1, &descriptor, pixels);
     if (err) {
+        refresh_error = err;
         LOG_ERR("epaper window write failed (%d)", err);
     }
 
     if (last && full_in_progress) {
         err = display_blanking_off(panel);
         if (err) {
+            refresh_error = err;
             LOG_ERR("epaper full refresh: unblanking failed (%d)", err);
         }
         full_in_progress = false;
@@ -113,6 +118,14 @@ void epaper_refresh_init(void) {
 }
 
 void epaper_refresh_full(lv_obj_t *screen) {
+    refresh_error = 0;
     full_requested = true;
     lv_obj_invalidate(screen);
+}
+
+int epaper_refresh_result(void) {
+    if (refresh_error) {
+        return refresh_error;
+    }
+    return full_requested || full_in_progress ? -EAGAIN : 0;
 }
