@@ -9,6 +9,7 @@ zephyr_library_sources(src/behavior_sync_mods.c)
 zephyr_library_sources(src/behavior_sync_layer.c)
 zephyr_library_sources(src/sync_battery.c)
 zephyr_library_sources(src/behavior_sync_battery.c)
+zephyr_library_sources(src/poweroff.c)
 
 if(CONFIG_SPLIT_STATE_SYNC_DEVICE_DONGLE)
   zephyr_library_sources(src/central_battery.c)

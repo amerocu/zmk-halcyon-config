@@ -5,6 +5,11 @@
  */
 
 / {
+    pwroff: pwroff {
+        compatible = "zmk,behavior-poweroff";
+        #binding-cells = <0>;
+    };
+
     syncbat: syncbat {
         compatible = "zmk,behavior-sync-battery";
         #binding-cells = <2>;

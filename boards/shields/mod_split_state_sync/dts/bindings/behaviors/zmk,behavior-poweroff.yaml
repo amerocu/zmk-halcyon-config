@@ -1,0 +1,4 @@
+# SPDX-License-Identifier: MIT
+description: Shut down connected split peripherals after their final display update
+compatible: "zmk,behavior-poweroff"
+include: zero_param.yaml

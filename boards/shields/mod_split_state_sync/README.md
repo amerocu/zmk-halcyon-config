@@ -67,6 +67,27 @@ when their half is USB-powered.
 Loss of the left-to-dongle link invalidates the right battery locally; a new
 snapshot restores it after reconnect.
 
+## Manual shutdown
+
+`&pwroff` is a zero-parameter GLOBAL behavior using the existing split behavior
+transport. Its six-character device name fits the BLE payload's eight-character
+limit. It is bound to **Adjust + O** (hold both outer Enter thumbs, then press and
+release O). It triggers on release so the source half can first deliver the
+release event to the dongle. The dongle sends it to both connected halves and
+does not shut itself down.
+
+Each half latches the request and schedules system work, keeping the BLE receive
+callback short. Duplicate requests are ignored; a queue failure clears the latch
+so shutdown can be retried. The worker raises a local sleep activity event before
+calling `zmk_pm_soft_off()` so local power listeners can finish their cleanup.
+`split_poweroff_requested()` distinguishes manual shutdown from automatic sleep.
+
+Both peripheral targets enable `CONFIG_ZMK_PM_SOFT_OFF=y`. Manual soft-off
+disables ordinary key wake; reset or remove/restore power to start again.
+Automatic deep sleep still uses normal key wake. Shutdown delivery requires
+awake, connected halves and uses ZMK's normal BLE transport without an additional
+delivery acknowledgement.
+
 ## Build and hardware verification
 
 Build all three targets with `just build` inside `nix develop`, then flash all
